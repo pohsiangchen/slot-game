@@ -11,6 +11,29 @@ const WriteFilePlugin = require('write-file-webpack-plugin');
 
 module.exports = (env, argv) => {
   const devMode = argv.mode !== 'production';
+  const optimizationOptions = {
+    minimize: true,
+    minimizer: [
+      new TerserPlugin({
+        terserOptions: {
+          warnings: false,
+          compress: {
+            comparisons: false
+          },
+          parse: {},
+          mangle: true,
+          output: {
+            comments: false,
+            ascii_only: true
+          }
+        },
+        parallel: true,
+        cache: true,
+        sourceMap: false
+      }),
+      new OptimizeCSSAssetsPlugin({})
+    ]
+  };
   return {
     entry: {
       'index': './src/js/index.js'
@@ -19,29 +42,7 @@ module.exports = (env, argv) => {
     devServer: {
       contentBase: './dist'
     },
-    optimization: {
-      minimize: true,
-      minimizer: [
-        new TerserPlugin({
-          terserOptions: {
-            warnings: false,
-            compress: {
-              comparisons: false
-            },
-            parse: {},
-            mangle: true,
-            output: {
-              comments: false,
-              ascii_only: true
-            }
-          },
-          parallel: true,
-          cache: true,
-          sourceMap: false
-        }),
-        new OptimizeCSSAssetsPlugin({})
-      ]
-    },
+    optimization: devMode ? {} : optimizationOptions,
     output: {
       filename: 'js/[name].js',
       path: path.join(__dirname, '/dist')

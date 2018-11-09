@@ -15,6 +15,7 @@ const TOTAL_WIN_WIDTH = 220;
 const TOTAL_BET_WIDTH = 180;
 const BTN_WIDTH = 40;
 const MESSAGE_VIEW_WIDTH = 280;
+const BET_AMOUNT = 10;
 
 //
 // Members
@@ -23,6 +24,7 @@ let app;
 let backgroundView;
 let logo;
 let bottomView;
+let bottomViewContainer;
 let backBtn;
 let playBtn;
 let autoPlayBtn;
@@ -50,7 +52,7 @@ const tweenings = [];
 const reels = [];
 let running = false;
 let totalWin = 2200.00;
-let totalBet = 120.00;
+let totalBet = 10.00;
 let balance = 200;
 
 // Create a Pixi Application
@@ -108,10 +110,12 @@ function setup() {
   //
   // Bottom view
   //
+  bottomViewContainer = new PIXI.Container();
   bottomView = new PIXI.Graphics();
   bottomView.beginFill(0xD2F1F6, 1);
   bottomView.drawRect(0, app.screen.height - BOTTOM_HEIGHT, app.screen.width, BOTTOM_HEIGHT);
   app.stage.addChild(bottomView);
+  app.stage.addChild(bottomViewContainer);
 
   //
   // Logo
@@ -134,7 +138,7 @@ function setup() {
   //
   playBtn = new PIXI.Sprite(PIXI.loader.resources['images/spin-normal.png'].texture);
   playBtn.anchor.set(0, 0.5);
-  bottomView.addChild(playBtn);
+  app.stage.addChild(playBtn);
   playBtn.interactive = true;
   playBtn.buttonMode = true;
   playBtn.addListener('pointerdown', function() {
@@ -147,7 +151,7 @@ function setup() {
   //
   autoPlayBtn = new PIXI.Sprite(PIXI.loader.resources['images/autoplay-normal.png'].texture);
   autoPlayBtn.anchor.set(0.5, 0.5);
-  bottomView.addChild(autoPlayBtn);
+  bottomViewContainer.addChild(autoPlayBtn);
   const style = new PIXI.TextStyle({
     fontFamily: 'Arial',
     fontSize: 18,
@@ -159,7 +163,7 @@ function setup() {
   autoPlayText.anchor.set(0.5, 0.5);
   autoPlayText.x = autoPlayBtn.x + autoPlayBtn.width / 2;
   autoPlayText.y = autoPlayBtn.y + autoPlayBtn.height / 2;
-  bottomView.addChild(autoPlayText);
+  bottomViewContainer.addChild(autoPlayText);
   setupAutoPlayBtn();
 
   //
@@ -184,6 +188,11 @@ function setup() {
   initQuickSpinBtnView();
   initInfoBtnView();
   initReels();
+
+  // Reset bottom view position
+  if (window.innerWidth <= 1280) {
+    bottomViewContainer.x = -160;
+  }
 
   window.onresize = function(event) {
     // TODO: responsive
@@ -326,9 +335,9 @@ app.ticker.add(function(delta) {
 
 // Start playing
 function startPlay() {
-  if (running || balance <= 0) return;
+  if (running || balance <= 0 || totalBet > balance || totalBet <= 0) return;
   // calculate balance
-  balance -= 10; // TODO: editable balance
+  balance -= totalBet;
   balanceText.text = `£${balance}`;
   if (balance === 0) playBtn.interactive = false;
 
@@ -384,8 +393,8 @@ function setupAutoPlayBtn() {
   autoPlayBtn.scale.x = autoPlayBtn.scale.y = Math.min(
     AUTO_PLAY_BUTTON_WIDTH / autoPlayBtn.width, AUTO_PLAY_BUTTON_WIDTH / autoPlayBtn.height
   );
-  autoPlayBtn.x = app.screen.width - PLAY_BUTTON_WIDTH - 36;
-  autoPlayBtn.y = app.screen.height - (BOTTOM_HEIGHT / 2) + 24;
+  autoPlayBtn.x = app.screen.width / 2 + TOTAL_BET_WIDTH + TOTAL_WIN_WIDTH + AUTO_PLAY_BUTTON_WIDTH / 2 + 36;
+  autoPlayBtn.y = app.screen.height - (BOTTOM_HEIGHT / 2);
   autoPlayText.x = autoPlayBtn.x;
   autoPlayText.y = autoPlayBtn.y;
 }
@@ -394,7 +403,7 @@ function initTotalWin() {
   totalWinBg = new PIXI.Graphics();
   totalWinBg.beginFill(0x0F8D9D, 1);
   totalWinBg.drawRect(app.screen.width / 2 + TOTAL_BET_WIDTH, app.screen.height - BOTTOM_HEIGHT, TOTAL_WIN_WIDTH, BOTTOM_HEIGHT);
-  bottomView.addChild(totalWinBg);
+  bottomViewContainer.addChild(totalWinBg);
 
   // Add total win label text
   const totalWinLabelStyle = new PIXI.TextStyle({
@@ -406,7 +415,7 @@ function initTotalWin() {
   });
   totalWinLabel = new PIXI.Text('TOTAL WIN', totalWinLabelStyle);
   totalWinLabel.anchor.set(0.5, 0.5);
-  bottomView.addChild(totalWinLabel);
+  bottomViewContainer.addChild(totalWinLabel);
 
   // Add total win number
   const totalWinTextStyle = new PIXI.TextStyle({
@@ -419,7 +428,7 @@ function initTotalWin() {
   });
   totalWinText = new PIXI.Text(`£${numberWithCommas(totalWin)}`, totalWinTextStyle);
   totalWinText.anchor.set(0.5, 0.5);
-  bottomView.addChild(totalWinText);
+  bottomViewContainer.addChild(totalWinText);
 
   setupTotalWin();
 }
@@ -435,7 +444,7 @@ function initTotalBet() {
   totalBetBg = new PIXI.Graphics();
   totalBetBg.beginFill(0x0F8D9D, 1);
   totalBetBg.drawRect(app.screen.width / 2, app.screen.height - BOTTOM_HEIGHT, TOTAL_BET_WIDTH, BOTTOM_HEIGHT);
-  bottomView.addChild(totalBetBg);
+  bottomViewContainer.addChild(totalBetBg);
 
   // Add total win label text
   const totalBetLabelStyle = new PIXI.TextStyle({
@@ -449,7 +458,7 @@ function initTotalBet() {
   totalBetLabel.anchor.set(0.5, 0.5);
   totalBetLabel.x = totalBetBg.getBounds().x + totalBetBg.getBounds().width / 2 - 16;
   totalBetLabel.y = totalBetBg.getBounds().y + 24;
-  bottomView.addChild(totalBetLabel);
+  bottomViewContainer.addChild(totalBetLabel);
 
   // Add total win number
   const totalBetTextStyle = new PIXI.TextStyle({
@@ -463,7 +472,7 @@ function initTotalBet() {
   totalBetText.anchor.set(0.5, 0.5);
   totalBetText.x = totalBetBg.getBounds().x + totalBetBg.getBounds().width / 2 - 16;
   totalBetText.y = totalBetBg.getBounds().y + 72;
-  bottomView.addChild(totalBetText);
+  bottomViewContainer.addChild(totalBetText);
 
   // Add plus button
   plusBtn = new PIXI.Sprite(PIXI.loader.resources['images/plus-normal.png'].texture);
@@ -473,7 +482,13 @@ function initTotalBet() {
   );
   plusBtn.x = totalBetLabel.x + totalBetLabel.width;
   plusBtn.y = totalBetLabel.y + 6;
-  bottomView.addChild(plusBtn);
+  bottomViewContainer.addChild(plusBtn);
+  plusBtn.interactive = true;
+  plusBtn.buttonMode = true;
+  plusBtn.addListener('pointerdown', function() {
+    totalBet += BET_AMOUNT;
+    totalBetText.text = `£${numberWithCommas(totalBet)}`;
+  });
 
   // Add minus button
   minusBtn = new PIXI.Sprite(PIXI.loader.resources['images/minus-normal.png'].texture);
@@ -483,14 +498,21 @@ function initTotalBet() {
   );
   minusBtn.x = totalBetText.x + totalBetLabel.width;
   minusBtn.y = totalBetText.y + 6;
-  bottomView.addChild(minusBtn);
+  bottomViewContainer.addChild(minusBtn);
+  minusBtn.interactive = true;
+  minusBtn.buttonMode = true;
+  minusBtn.addListener('pointerdown', function() {
+    if (totalBet <= BET_AMOUNT) return;
+    totalBet -= BET_AMOUNT;
+    totalBetText.text = `£${numberWithCommas(totalBet)}`;
+  });
 }
 
 function initMessageView() {
   messageViewBg = new PIXI.Graphics();
   messageViewBg.beginFill(0x0F8D9D, 1);
   messageViewBg.drawRect(app.screen.width / 2 - MESSAGE_VIEW_WIDTH, app.screen.height - BOTTOM_HEIGHT, MESSAGE_VIEW_WIDTH, BOTTOM_HEIGHT / 2);
-  bottomView.addChild(messageViewBg);
+  bottomViewContainer.addChild(messageViewBg);
 
   // Add total win label text
   const messageStyle = new PIXI.TextStyle({
@@ -502,7 +524,7 @@ function initMessageView() {
   messageText.anchor.set(0.5, 0.5);
   messageText.x = messageViewBg.getBounds().x + messageViewBg.getBounds().width / 2;
   messageText.y = messageViewBg.getBounds().y + 24;
-  bottomView.addChild(messageText);
+  bottomViewContainer.addChild(messageText);
 
   // Add mask to hide overflow text
   const mask = new PIXI.Graphics();
@@ -521,7 +543,7 @@ function initSoundBtnView() {
   soundBtnViewBg = new PIXI.Graphics();
   soundBtnViewBg.beginFill(0x0F8D9D, 1);
   soundBtnViewBg.drawRect(app.screen.width / 2 - MESSAGE_VIEW_WIDTH - BOTTOM_HEIGHT / 2, app.screen.height - BOTTOM_HEIGHT, BOTTOM_HEIGHT / 2, BOTTOM_HEIGHT / 2);
-  bottomView.addChild(soundBtnViewBg);
+  bottomViewContainer.addChild(soundBtnViewBg);
 
   soundBtn = new PIXI.Sprite(PIXI.loader.resources['images/sound-normal.png'].texture);
   soundBtn.anchor.set(0.5, 0.5);
@@ -530,14 +552,14 @@ function initSoundBtnView() {
   );
   soundBtn.x = soundBtnViewBg.getBounds().x + soundBtnViewBg.getBounds().width / 2;
   soundBtn.y = soundBtnViewBg.getBounds().y + soundBtnViewBg.getBounds().height / 2;
-  bottomView.addChild(soundBtn);
+  bottomViewContainer.addChild(soundBtn);
 }
 
 function initPaytableBtnView() {
   paytableBtnViewBg = new PIXI.Graphics();
   paytableBtnViewBg.beginFill(0x0F8D9D, 1);
   paytableBtnViewBg.drawRect(app.screen.width / 2 - MESSAGE_VIEW_WIDTH - BOTTOM_HEIGHT, app.screen.height - BOTTOM_HEIGHT, BOTTOM_HEIGHT / 2, BOTTOM_HEIGHT / 2);
-  bottomView.addChild(paytableBtnViewBg);
+  bottomViewContainer.addChild(paytableBtnViewBg);
 
   paytableBtn = new PIXI.Sprite(PIXI.loader.resources['images/paytable-normal.png'].texture);
   paytableBtn.anchor.set(0.5, 0.5);
@@ -546,7 +568,7 @@ function initPaytableBtnView() {
   );
   paytableBtn.x = paytableBtnViewBg.getBounds().x + paytableBtnViewBg.getBounds().width / 2;
   paytableBtn.y = paytableBtnViewBg.getBounds().y + paytableBtnViewBg.getBounds().height / 2;
-  bottomView.addChild(paytableBtn);
+  bottomViewContainer.addChild(paytableBtn);
 }
 
 function initBalanceLabelView() {
@@ -560,7 +582,7 @@ function initBalanceLabelView() {
   balanceLabelText.anchor.set(0, 0.5);
   balanceLabelText.x = app.screen.width / 2 - MESSAGE_VIEW_WIDTH + 16;
   balanceLabelText.y = app.screen.height - BOTTOM_HEIGHT + BOTTOM_HEIGHT / 2 + 28;
-  bottomView.addChild(balanceLabelText);
+  bottomViewContainer.addChild(balanceLabelText);
 }
 
 function initBalanceTextView() {
@@ -574,7 +596,7 @@ function initBalanceTextView() {
   balanceText.anchor.set(1, 0.5);
   balanceText.x = balanceLabelText.getBounds().x + 224;
   balanceText.y = app.screen.height - BOTTOM_HEIGHT + BOTTOM_HEIGHT / 2 + 28;
-  bottomView.addChild(balanceText);
+  bottomViewContainer.addChild(balanceText);
 }
 
 function initQuickSpinBtnView() {
@@ -584,7 +606,7 @@ function initQuickSpinBtnView() {
   );
   quickSpinBtn.x = app.screen.width / 2 - MESSAGE_VIEW_WIDTH - BOTTOM_HEIGHT / 2 + 6;
   quickSpinBtn.y = app.screen.height - BOTTOM_HEIGHT + BOTTOM_HEIGHT / 2 + 6;
-  bottomView.addChild(quickSpinBtn);
+  bottomViewContainer.addChild(quickSpinBtn);
 }
 
 function initInfoBtnView() {
@@ -594,5 +616,5 @@ function initInfoBtnView() {
   );
   infoBtn.x = app.screen.width / 2 - MESSAGE_VIEW_WIDTH - BOTTOM_HEIGHT + 6;
   infoBtn.y = app.screen.height - BOTTOM_HEIGHT + BOTTOM_HEIGHT / 2 + 6;
-  bottomView.addChild(infoBtn);
+  bottomViewContainer.addChild(infoBtn);
 }

@@ -13,6 +13,10 @@ $ npm run start
 ```
 Access development server running on http://localhost:8080
 
+## Libraries
+
+* PixiJS v4
+
 ## TODO
 
 * MVC pattern
