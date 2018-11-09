@@ -15,7 +15,7 @@ module.exports = (env, argv) => {
     entry: {
       'index': './src/js/index.js'
     },
-    devtool: !!devMode? 'inline-source-map' : 'cheap-source-map',
+    devtool: devMode ? 'inline-source-map' : 'cheap-source-map',
     devServer: {
       contentBase: './dist'
     },
@@ -32,7 +32,7 @@ module.exports = (env, argv) => {
             mangle: true,
             output: {
               comments: false,
-              ascii_only: true,
+              ascii_only: true
             }
           },
           parallel: true,
@@ -40,7 +40,7 @@ module.exports = (env, argv) => {
           sourceMap: false
         }),
         new OptimizeCSSAssetsPlugin({})
-      ],
+      ]
     },
     output: {
       filename: 'js/[name].js',
@@ -58,7 +58,7 @@ module.exports = (env, argv) => {
         template: './src/index.html',
         filename: './index.html',
         inject: true,
-        minify: !!devMode ? {} : {
+        minify: devMode ? {} : {
           removeComments: true,
           collapseWhitespace: true,
           removeRedundantAttributes: true,
