@@ -1,6 +1,8 @@
 # slot-game
 Test assignment of slot game
 
+* [Live Demo](https://slot-game.now.sh/)
+
 ## Quick start
 
 Development
@@ -10,3 +12,8 @@ $ npm install
 $ npm run start
 ```
 Access development server running on http://localhost:8080
+
+## TODO
+
+* MVC pattern
+* Responsive UI

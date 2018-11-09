@@ -4,7 +4,7 @@ const CleanWebpackPlugin = require('clean-webpack-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const WriteFilePlugin = require('write-file-webpack-plugin');
@@ -15,19 +15,32 @@ module.exports = (env, argv) => {
     entry: {
       'index': './src/js/index.js'
     },
-    devtool: 'inline-source-map',
+    devtool: !!devMode? 'inline-source-map' : 'cheap-source-map',
     devServer: {
       contentBase: './dist'
     },
     optimization: {
+      minimize: true,
       minimizer: [
-        new UglifyJsPlugin({
-          cache: true,
+        new TerserPlugin({
+          terserOptions: {
+            warnings: false,
+            compress: {
+              comparisons: false
+            },
+            parse: {},
+            mangle: true,
+            output: {
+              comments: false,
+              ascii_only: true,
+            }
+          },
           parallel: true,
-          sourceMap: !!devMode
+          cache: true,
+          sourceMap: false
         }),
         new OptimizeCSSAssetsPlugin({})
-      ]
+      ],
     },
     output: {
       filename: 'js/[name].js',
@@ -44,7 +57,19 @@ module.exports = (env, argv) => {
         hash: true,
         template: './src/index.html',
         filename: './index.html',
-        inject: false
+        inject: true,
+        minify: !!devMode ? {} : {
+          removeComments: true,
+          collapseWhitespace: true,
+          removeRedundantAttributes: true,
+          useShortDoctype: true,
+          removeEmptyAttributes: true,
+          removeStyleLinkTypeAttributes: true,
+          keepClosingSlash: true,
+          minifyJS: true,
+          minifyCSS: true,
+          minifyURLs: true
+        }
       }),
       new webpack.ProvidePlugin({
         /* Use when importing individual BS components */
@@ -106,32 +131,3 @@ module.exports = (env, argv) => {
     }
   };
 };
-// const webpack = require('webpack');
-//
-// module.exports = {
-//   entry: './src/index.js',
-//   module: {
-//     rules: [
-//       {
-//         test: /\.(js|jsx)$/,
-//         exclude: /node_modules/,
-//         use: ['babel-loader']
-//       }
-//     ]
-//   },
-//   resolve: {
-//     extensions: ['*', '.js', '.jsx']
-//   },
-//   output: {
-//     path: __dirname + '/dist',
-//     publicPath: '/',
-//     filename: 'bundle.js'
-//   },
-//   plugins: [
-//     new webpack.HotModuleReplacementPlugin()
-//   ],
-//   devServer: {
-//     contentBase: './dist',
-//     hot: true
-//   }
-// };

@@ -1,11 +1,21 @@
 import 'sanitize.css/sanitize.css';
 import * as PIXI from 'pixi.js';
-import { getSizeToFillScreen, numberWithCommas } from './utils';
+import { getSizeToFillScreen, numberWithCommas,
+  lerp, backout, getTweening } from './utils';
+
+//
+// Members
+//
+let app;
+let backgroundView;
+let logo;
+let backBtn;
+const tweenings = [];
 
 // Create a Pixi Application
-let app = new PIXI.Application({
-  width: 1920,
-  height: 1080,
+app = new PIXI.Application({
+  width: window.innerWidth,
+  height: window.innerHeight,
   antialias: true,
   transparent: false,
   resolution: 1
@@ -13,7 +23,7 @@ let app = new PIXI.Application({
 
 app.renderer.view.style.position = 'absolute';
 app.renderer.view.style.display = 'block';
-// app.renderer.autoResize = true;
+app.renderer.autoResize = true;
 
 // Add the canvas that Pixi automatically created for you to the HTML document
 document.body.appendChild(app.view);
@@ -43,23 +53,40 @@ PIXI.loader
   .add('images/symbol10.png')
   .load(setup);
 
-// This `setup` function will run when the image has loaded
-let bg;
 function setup() {
-  // Create the bg sprite
-  bg = new PIXI.Sprite(PIXI.loader.resources['images/game-background.jpg'].texture);
-  bg.anchor.set(0.5, 0.5);
+  //
+  // Background view
+  //
+  backgroundView = new PIXI.Sprite(
+    PIXI.loader.resources['images/game-background.jpg'].texture
+  );
+  backgroundView.anchor.set(0.5, 0.5);
+  app.stage.addChild(backgroundView);
   setupBackgroundView();
-  // Add the cat to the stage
-  app.stage.addChild(bg);
+
+  //
+  // Logo
+  //
+  logo = new PIXI.Sprite(PIXI.loader.resources['images/game-logo.png'].texture);
+  logo.anchor.set(0.5, 0.5);
+  app.stage.addChild(logo);
+  setupLogo();
+
+  //
+  // back button
+  //
+  backBtn = new PIXI.Sprite(PIXI.loader.resources['images/back-normal.png'].texture);
+  backBtn.anchor.set(0.5, 0.5);
+  app.stage.addChild(backBtn);
+  setupBackBtn();
 
   window.onresize = function(event) {
-    setupBackgroundView();
+    // setupBackgroundView();
+    // setupLogo();
+    app.renderer.resize(window.innerWidth, window.innerHeight);
   };
 
   initReels();
-  initLogo();
-  initBackBtn();
   initAutoPlayBtn();
   initTotalWin();
   initTotalBet();
@@ -75,19 +102,16 @@ function setup() {
 function setupBackgroundView() {
   // Fill screen
   const size = getSizeToFillScreen({
-    width: bg.width,
-    height: bg.height
+    width: backgroundView.width,
+    height: backgroundView.height
   }, {
     width: window.innerWidth,
     height: window.innerHeight
   });
-
-  bg.width = size.width;
-  bg.height = size.height;
-  bg.x = window.innerWidth / 2;
-  bg.y = window.innerHeight / 2;
-
-  app.renderer.resize(window.innerWidth, window.innerHeight);
+  backgroundView.width = size.width;
+  backgroundView.height = size.height;
+  backgroundView.x = window.innerWidth / 2;
+  backgroundView.y = window.innerHeight / 2;
 }
 
 const REEL_WIDTH = 150;
@@ -95,6 +119,10 @@ const SYMBOL_SIZE = 150;
 // const BOTTOM_HEIGHT = 124;
 let bottom;
 function initReels() {
+  const REELS_COLUMN_NUM = 5;
+  const REELS_ROW_NUM = 3;
+  const GENERATED_SYMBOL_SIZE = 10;
+
   // Create different slot symbols.
   const slotTextures = [
     PIXI.Texture.fromImage('images/symbol1.png'),
@@ -111,14 +139,14 @@ function initReels() {
 
   // Build the reels
   const reels = [];
-  const reelContainer = new PIXI.Container();
-  for (let i = 0; i < 5; i++) {
-    const rc = new PIXI.Container();
-    rc.x = i * REEL_WIDTH;
-    reelContainer.addChild(rc);
+  const reelsContainer = new PIXI.Container();
+  for (let i = 0; i < REELS_COLUMN_NUM; i++) {
+    const reelContainer = new PIXI.Container();
+    reelContainer.x = i * REEL_WIDTH;
+    reelsContainer.addChild(reelContainer);
 
     const reel = {
-      container: rc,
+      container: reelContainer,
       symbols: [],
       position: 0,
       previousPosition: 0,
@@ -126,31 +154,29 @@ function initReels() {
     };
     reel.blur.blurX = 0;
     reel.blur.blurY = 0;
-    rc.filters = [reel.blur];
+    reelContainer.filters = [reel.blur];
 
     // Build the symbols
-    for (let j = 0; j < 10; j++) {
+    for (let j = 0; j < GENERATED_SYMBOL_SIZE; j++) {
       const symbol = new PIXI.Sprite(
         slotTextures[Math.floor(Math.random() * slotTextures.length)]
       );
-      // Scale the symbol to fit symbol area.
-      // symbol.y = j * SYMBOL_SIZE;
       symbol.scale.x = symbol.scale.y = Math.min(
         SYMBOL_SIZE / symbol.width, SYMBOL_SIZE / symbol.height
       );
       symbol.x = Math.round((SYMBOL_SIZE - symbol.width) / 2);
       symbol.y = j * symbol.height;
       reel.symbols.push(symbol);
-      rc.addChild(symbol);
+      reelContainer.addChild(symbol);
     }
     reels.push(reel);
   }
-  app.stage.addChild(reelContainer);
+  app.stage.addChild(reelsContainer);
 
-  // Build top & bottom covers and position reelContainer
-  const margin = (app.screen.height - SYMBOL_SIZE * 3) / 2;
-  reelContainer.y = margin;
-  reelContainer.x = Math.round(app.screen.width - REEL_WIDTH * 5) / 2;
+  // Build top & bottom covers and position reelsContainer
+  const margin = (app.screen.height - SYMBOL_SIZE * REELS_ROW_NUM) / 2;
+  reelsContainer.y = margin;
+  reelsContainer.x = Math.round(app.screen.width - REEL_WIDTH * 5) / 2;
 
   // Limits the visibility of reels
   const reelsMask = new PIXI.Graphics();
@@ -162,11 +188,11 @@ function initReels() {
   );
   reelsMask.renderable = true;
   reelsMask.cacheAsBitmap = true;
-  reelContainer.mask = reelsMask;
+  reelsContainer.mask = reelsMask;
 
   bottom = new PIXI.Graphics();
   bottom.beginFill(0xD2F1F6, 1);
-  bottom.drawRect(0, SYMBOL_SIZE * 3 + margin, app.screen.width, margin);
+  bottom.drawRect(0, SYMBOL_SIZE * REELS_ROW_NUM + margin, app.screen.width, margin);
 
   const playBtn = new PIXI.Sprite(PIXI.loader.resources['images/spin-normal.png'].texture);
   playBtn.anchor.set(0.5, 0.5);
@@ -198,7 +224,7 @@ function initReels() {
     for (let i = 0; i < reels.length; i++) {
       const r = reels[i];
       const extra = Math.floor(Math.random() * 3);
-      tweenTo(
+      tweenings.push(getTweening(
         r,
         'position',
         r.position + 10 + i * 5 + extra,
@@ -206,7 +232,7 @@ function initReels() {
         backout(0.6),
         null,
         i === reels.length - 1 ? reelsComplete : null
-      );
+      ));
     }
   }
 
@@ -244,31 +270,12 @@ function initReels() {
   });
 }
 
-// Very simple tweening utility function.
-// This should be replaced with a proper tweening library in a real product.
-const tweening = [];
-function tweenTo(object, property, target, time, easing, onchange, oncomplete) {
-  const tween = {
-    object: object,
-    property: property,
-    propertyBeginValue: object[property],
-    target: target,
-    easing: easing,
-    time: time,
-    change: onchange,
-    complete: oncomplete,
-    start: Date.now()
-  };
-  tweening.push(tween);
-  return tween;
-}
-
 // Listen for animate update.
 app.ticker.add(function(delta) {
   const now = Date.now();
   const remove = [];
-  for (let i = 0; i < tweening.length; i++) {
-    const t = tweening[i];
+  for (let i = 0; i < tweenings.length; i++) {
+    const t = tweenings[i];
     const phase = Math.min(1, (now - t.start) / t.time);
 
     t.object[t.property] = lerp(t.propertyBeginValue, t.target, t.easing(phase));
@@ -280,45 +287,27 @@ app.ticker.add(function(delta) {
     }
   }
   for (let i = 0; i < remove.length; i++) {
-    tweening.splice(tweening.indexOf(remove[i]), 1);
+    tweenings.splice(tweenings.indexOf(remove[i]), 1);
   }
 });
 
-// Basic lerp funtion.
-function lerp(a1, a2, t) {
-  return a1 * (1 - t) + a2 * t;
-}
-
-// Backout function from tweenjs.
-// https://github.com/CreateJS/TweenJS/blob/master/src/tweenjs/Ease.js
-function backout(amount) {
-  return function(t) {
-    return (--t * t * ((amount + 1) * t + amount) + 1);
-  };
-};
-
-function initLogo() {
+function setupLogo() {
   const LOGO_WIDTH = 280;
-  const logo = new PIXI.Sprite(PIXI.loader.resources['images/game-logo.png'].texture);
   logo.anchor.set(0.5, 0.5);
   logo.scale.x = logo.scale.y = Math.min(
     LOGO_WIDTH / logo.width, LOGO_WIDTH / logo.height
   );
   logo.x = window.innerWidth / 2;
   logo.y = app.screen.y + 56;
-  app.stage.addChild(logo);
 }
 
-function initBackBtn() {
+function setupBackBtn() {
   const BACK_WIDTH = 72;
-  const backBtn = new PIXI.Sprite(PIXI.loader.resources['images/back-normal.png'].texture);
-  backBtn.anchor.set(0.5, 0.5);
   backBtn.scale.x = backBtn.scale.y = Math.min(
     BACK_WIDTH / backBtn.width, BACK_WIDTH / backBtn.height
   );
   backBtn.x = app.screen.x + 56;
   backBtn.y = app.screen.y + 56;
-  app.stage.addChild(backBtn);
 }
 
 function initAutoPlayBtn() {
