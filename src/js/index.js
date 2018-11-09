@@ -384,8 +384,8 @@ function setupAutoPlayBtn() {
   autoPlayBtn.scale.x = autoPlayBtn.scale.y = Math.min(
     AUTO_PLAY_BUTTON_WIDTH / autoPlayBtn.width, AUTO_PLAY_BUTTON_WIDTH / autoPlayBtn.height
   );
-  autoPlayBtn.x = app.screen.width - PLAY_BUTTON_WIDTH - 200;
-  autoPlayBtn.y = app.screen.height - (BOTTOM_HEIGHT / 2);
+  autoPlayBtn.x = app.screen.width - PLAY_BUTTON_WIDTH - 36;
+  autoPlayBtn.y = app.screen.height - (BOTTOM_HEIGHT / 2) + 24;
   autoPlayText.x = autoPlayBtn.x;
   autoPlayText.y = autoPlayBtn.y;
 }
